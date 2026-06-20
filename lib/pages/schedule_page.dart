@@ -13,10 +13,51 @@ class SchedulePage extends StatefulWidget {
 class _SchedulePageState extends State<SchedulePage> {
   DateTime selectedDate = DateTime.now();
 
-  final List<DateTime> dateOptions = List.generate(
-    7,
-    (index) => DateTime.now().add(Duration(days: index)),
-  );
+  // weekOffset 0 = minggu ini, 1 = minggu depan, -1 = minggu lalu, dst.
+  int weekOffset = 0;
+
+  /// Senin sebagai awal minggu untuk weekOffset saat ini.
+  DateTime get _weekStart {
+    final now = DateTime.now();
+    final mondayThisWeek = now.subtract(Duration(days: now.weekday - 1));
+    return DateTime(
+      mondayThisWeek.year,
+      mondayThisWeek.month,
+      mondayThisWeek.day,
+    ).add(Duration(days: weekOffset * 7));
+  }
+
+  List<DateTime> get dateOptions =>
+      List.generate(7, (index) => _weekStart.add(Duration(days: index)));
+
+  String get _weekLabel {
+    switch (weekOffset) {
+      case 0:
+        return 'Minggu Ini';
+      case 1:
+        return 'Minggu Depan';
+      case -1:
+        return 'Minggu Lalu';
+      default:
+        return weekOffset > 0
+            ? '$weekOffset Minggu Lagi'
+            : '${weekOffset.abs()} Minggu Lalu';
+    }
+  }
+
+  void _goToPreviousWeek() {
+    setState(() {
+      weekOffset -= 1;
+      selectedDate = _weekStart;
+    });
+  }
+
+  void _goToNextWeek() {
+    setState(() {
+      weekOffset += 1;
+      selectedDate = _weekStart;
+    });
+  }
 
   String formatDate(DateTime date) {
     final dayNames = [
@@ -70,57 +111,105 @@ class _SchedulePageState extends State<SchedulePage> {
                 color: colorKuning,
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: dateOptions.map((date) {
-                    final isSelected =
-                        date.day == selectedDate.day &&
-                        date.month == selectedDate.month &&
-                        date.year == selectedDate.year;
-                    return GestureDetector(
-                      onTap: () => setState(() => selectedDate = date),
-                      child: Container(
-                        margin: const EdgeInsets.only(right: 12),
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 14,
-                          horizontal: 18,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isSelected ? Colors.white : colorKuning,
-                          borderRadius: BorderRadius.circular(20),
-                          border: isSelected
-                              ? Border.all(color: colorBiru, width: 2)
-                              : null,
-                        ),
-                        child: Column(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      GestureDetector(
+                        onTap: _goToPreviousWeek,
+                        child: Row(
                           children: [
-                            Text(
-                              date.day.toString().padLeft(2, '0'),
-                              style: bodyTextStyle(size: 28, color: colorMerah),
+                            const Icon(
+                              Icons.chevron_left,
+                              color: Colors.black,
                             ),
-                            const SizedBox(height: 4),
                             Text(
-                              formatDate(date).split(' ')[1],
-                              style: bodyTextStyle(
-                                size: 16,
-                                color: Colors.black,
-                              ),
+                              'Sebelumnya',
+                              style: bodyTextStyle(size: 14, color: Colors.black54),
                             ),
-                            const SizedBox(height: 8),
-                            if (isSelected)
-                              Row(
-                                children: const [
-                                  Text('•  ', style: TextStyle(fontSize: 18)),
-                                  Text('•', style: TextStyle(fontSize: 18)),
-                                ],
-                              ),
                           ],
                         ),
                       ),
-                    );
-                  }).toList(),
-                ),
+                      Text(
+                        _weekLabel,
+                        style: bodyTextStyle(size: 16, color: Colors.black87),
+                      ),
+                      GestureDetector(
+                        onTap: _goToNextWeek,
+                        child: Row(
+                          children: [
+                            Text(
+                              'Berikutnya',
+                              style: bodyTextStyle(size: 14, color: Colors.black54),
+                            ),
+                            const Icon(
+                              Icons.chevron_right,
+                              color: Colors.black,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: dateOptions.map((date) {
+                        final isSelected =
+                            date.day == selectedDate.day &&
+                            date.month == selectedDate.month &&
+                            date.year == selectedDate.year;
+                        return GestureDetector(
+                          onTap: () => setState(() => selectedDate = date),
+                          child: Container(
+                            margin: const EdgeInsets.only(right: 12),
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 14,
+                              horizontal: 18,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isSelected ? Colors.white : colorKuning,
+                              borderRadius: BorderRadius.circular(20),
+                              border: isSelected
+                                  ? Border.all(color: colorBiru, width: 2)
+                                  : null,
+                            ),
+                            child: Column(
+                              children: [
+                                Text(
+                                  date.day.toString().padLeft(2, '0'),
+                                  style: crewCheckTitleStyle(
+                                    size: 28,
+                                    color: colorMerah,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  formatDate(date).split(' ')[1],
+                                  style: bodyTextStyle(
+                                    size: 16,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                if (isSelected)
+                                  Row(
+                                    children: const [
+                                      Text('•  ', style: TextStyle(fontSize: 18)),
+                                      Text('•', style: TextStyle(fontSize: 18)),
+                                    ],
+                                  ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),

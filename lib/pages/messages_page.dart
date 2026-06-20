@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:crew_check/app_theme.dart';
 import 'package:crew_check/widgets/common_widgets.dart';
+import 'package:crew_check/widgets/add_project_dialog.dart';
 
 class MessagesPage extends StatelessWidget {
   const MessagesPage({super.key});
@@ -216,7 +217,7 @@ class MessagesPage extends StatelessWidget {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {},
+        onPressed: () => showAddProjectDialog(context),
         backgroundColor: colorMerah,
         child: const Icon(Icons.add, color: Colors.white),
       ),

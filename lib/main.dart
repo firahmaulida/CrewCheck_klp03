@@ -8,6 +8,10 @@ import 'package:crew_check/pages/schedule_page.dart';
 import 'package:crew_check/pages/chat_page.dart';
 import 'package:crew_check/pages/profile_page.dart';
 import 'package:crew_check/pages/messages_page.dart';
+import 'package:crew_check/pages/join_team_page.dart';
+import 'package:crew_check/pages/create_team_page.dart';
+import 'package:crew_check/pages/team_projects_page.dart';
+import 'package:crew_check/pages/project_detail_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -53,6 +57,15 @@ class CrewCheckApp extends StatelessWidget {
           );
         },
         '/profile': (context) => const ProfilePage(),
+        '/team/join': (context) => const JoinTeamPage(),
+        '/team/create': (context) => const CreateTeamPage(),
+        '/team/projects': (context) => const TeamProjectsPage(),
+        '/team/detail': (context) {
+          final args =
+              ModalRoute.of(context)!.settings.arguments
+                  as Map<String, dynamic>?;
+          return ProjectDetailPage(teamId: args?['teamId'] ?? '');
+        },
       },
     );
   }
