@@ -80,6 +80,8 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             TextButton(
               onPressed: () async {
+                final messenger = ScaffoldMessenger.of(context);
+                final dialogNavigator = Navigator.of(context);
                 try {
                   if (currentUser != null) {
                     await currentUser.updateDisplayName(nameController.text);
@@ -93,7 +95,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         });
                   }
                   if (!mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  messenger.showSnackBar(
                     const SnackBar(
                       content: Text('Profil berhasil diperbarui'),
                       backgroundColor: Colors.green,
@@ -101,11 +103,11 @@ class _ProfilePageState extends State<ProfilePage> {
                   );
                   nameController.dispose();
                   phoneController.dispose();
-                  Navigator.pop(context);
+                  dialogNavigator.pop();
                   setState(() {});
                 } catch (e) {
                   if (!mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  messenger.showSnackBar(
                     SnackBar(
                       content: Text('Gagal: $e'),
                       backgroundColor: Colors.red,
@@ -254,9 +256,11 @@ class _ProfilePageState extends State<ProfilePage> {
                     ),
                     TextButton(
                       onPressed: () async {
+                        final messenger = ScaffoldMessenger.of(context);
+                        final dialogNavigator = Navigator.of(context);
                         if (newPasswordController.text !=
                             confirmPasswordController.text) {
-                          ScaffoldMessenger.of(context).showSnackBar(
+                          messenger.showSnackBar(
                             const SnackBar(
                               content: Text('Password tidak cocok'),
                               backgroundColor: Colors.orange,
@@ -267,7 +271,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
                         if (newPasswordController.text.isEmpty ||
                             oldPasswordController.text.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
+                          messenger.showSnackBar(
                             const SnackBar(
                               content: Text('Semua field harus diisi'),
                               backgroundColor: Colors.orange,
@@ -292,7 +296,7 @@ class _ProfilePageState extends State<ProfilePage> {
                             );
 
                             if (!mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
+                            messenger.showSnackBar(
                               const SnackBar(
                                 content: Text('Password berhasil diubah'),
                                 backgroundColor: Colors.green,
@@ -301,11 +305,11 @@ class _ProfilePageState extends State<ProfilePage> {
                             oldPasswordController.dispose();
                             newPasswordController.dispose();
                             confirmPasswordController.dispose();
-                            Navigator.pop(context);
+                            dialogNavigator.pop();
                           }
                         } catch (e) {
                           if (!mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
+                          messenger.showSnackBar(
                             SnackBar(
                               content: Text('Gagal: $e'),
                               backgroundColor: Colors.red,
@@ -349,13 +353,10 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             TextButton(
               onPressed: () async {
+                final navigator = Navigator.of(context);
                 await _auth.signOut();
                 if (!mounted) return;
-                Navigator.pushNamedAndRemoveUntil(
-                  context,
-                  '/',
-                  (route) => false,
-                );
+                navigator.pushNamedAndRemoveUntil('/', (route) => false);
               },
               child: Text(
                 'Keluar',

@@ -12,7 +12,6 @@ class TeamProjectsPage extends StatelessWidget {
     return FirebaseFirestore.instance
         .collection('teams')
         .where('memberUids', arrayContains: uid)
-        .orderBy('createdAt', descending: true)
         .snapshots();
   }
 
@@ -67,6 +66,16 @@ class TeamProjectsPage extends StatelessWidget {
                         return const Center(child: CircularProgressIndicator());
                       }
                       final docs = snapshot.data?.docs ?? [];
+                      if (snapshot.hasError) {
+                        return Center(
+                          child: Text(
+                            'Gagal memuat projek: ${snapshot.error}',
+                            style: bodyTextStyle(color: Colors.red),
+                            textAlign: TextAlign.center,
+                          ),
+                        );
+                      }
+
                       if (docs.isEmpty) {
                         return Center(
                           child: Text(

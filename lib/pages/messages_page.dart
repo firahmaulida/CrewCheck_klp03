@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:crew_check/app_theme.dart';
 import 'package:crew_check/widgets/common_widgets.dart';
@@ -72,140 +73,167 @@ class MessagesPage extends StatelessWidget {
 
           // Conversations list from `teams` collection
           Expanded(
-            child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-              stream: FirebaseFirestore.instance
-                  .collection('teams')
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (snapshot.hasError) {
+            child: Builder(
+              builder: (context) {
+                final user = FirebaseAuth.instance.currentUser;
+                if (user == null) {
                   return Center(
                     child: Text(
-                      'Gagal memuat percakapan',
+                      'Silakan masuk untuk melihat pesan',
                       style: bodyTextStyle(size: 18),
                     ),
                   );
                 }
 
-                final teams = snapshot.data?.docs ?? [];
-                if (teams.isEmpty) {
-                  return Center(
-                    child: Text(
-                      'Belum ada percakapan',
-                      style: bodyTextStyle(size: 18),
-                    ),
-                  );
-                }
+                return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                  stream: FirebaseFirestore.instance
+                      .collection('teams')
+                      .where('memberUids', arrayContains: user.uid)
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    if (snapshot.hasError) {
+                      return Center(
+                        child: Text(
+                          'Gagal memuat percakapan',
+                          style: bodyTextStyle(size: 18),
+                        ),
+                      );
+                    }
 
-                return ListView.separated(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 8,
-                  ),
-                  itemCount: teams.length,
-                  separatorBuilder: (context, index) =>
-                      const SizedBox(height: 12),
-                  itemBuilder: (context, index) {
-                    final teamDoc = teams[index];
-                    final teamId = teamDoc.id;
-                    final teamData = teamDoc.data();
-                    final name = (teamData['name'] as String?) ?? teamId;
-                    final avatarUrl = teamData['avatarUrl'] as String?;
+                    final teams = snapshot.data?.docs ?? [];
+                    if (teams.isEmpty) {
+                      return Center(
+                        child: Text(
+                          'Belum ada percakapan',
+                          style: bodyTextStyle(size: 18),
+                        ),
+                      );
+                    }
 
-                    // fetch last message for this team
-                    return FutureBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                      future: FirebaseFirestore.instance
-                          .collection('teams')
-                          .doc(teamId)
-                          .collection('messages')
-                          .orderBy('timestamp', descending: true)
-                          .limit(1)
-                          .get(),
-                      builder: (context, lastSnap) {
-                        String lastText = '';
-                        String sender = '';
-                        String time = '';
-                        if (lastSnap.hasData &&
-                            lastSnap.data!.docs.isNotEmpty) {
-                          final msg = lastSnap.data!.docs.first.data();
-                          lastText = (msg['text'] as String?) ?? '';
-                          sender = (msg['senderName'] as String?) ?? '';
-                          time = _formatTime(msg['timestamp'] as Timestamp?);
-                        }
+                    return ListView.separated(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 8,
+                      ),
+                      itemCount: teams.length,
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(height: 12),
+                      itemBuilder: (context, index) {
+                        final teamDoc = teams[index];
+                        final teamId = teamDoc.id;
+                        final teamData = teamDoc.data();
+                        final name =
+                            (teamData['teamName'] as String?) ??
+                            (teamData['projectName'] as String?) ??
+                            teamId;
+                        final avatarUrl = teamData['avatarUrl'] as String?;
 
-                        return GestureDetector(
-                          onTap: () {
-                            Navigator.pushNamed(
-                              context,
-                              '/chat/room',
-                              arguments: {'teamId': teamId, 'groupName': name},
+                        // fetch last message for this team
+                        return FutureBuilder<
+                          QuerySnapshot<Map<String, dynamic>>
+                        >(
+                          future: FirebaseFirestore.instance
+                              .collection('teams')
+                              .doc(teamId)
+                              .collection('messages')
+                              .orderBy('timestamp', descending: true)
+                              .limit(1)
+                              .get(),
+                          builder: (context, lastSnap) {
+                            String lastText = '';
+                            String sender = '';
+                            String time = '';
+                            if (lastSnap.hasData &&
+                                lastSnap.data!.docs.isNotEmpty) {
+                              final msg = lastSnap.data!.docs.first.data();
+                              lastText = (msg['text'] as String?) ?? '';
+                              sender = (msg['senderName'] as String?) ?? '';
+                              time = _formatTime(
+                                msg['timestamp'] as Timestamp?,
+                              );
+                            }
+
+                            return GestureDetector(
+                              onTap: () {
+                                Navigator.pushNamed(
+                                  context,
+                                  '/chat/room',
+                                  arguments: {
+                                    'teamId': teamId,
+                                    'groupName': name,
+                                  },
+                                );
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(14),
+                                decoration: BoxDecoration(
+                                  color: colorKuning,
+                                  borderRadius: BorderRadius.circular(16),
+                                  boxShadow: const [
+                                    BoxShadow(
+                                      color: Color(0x0D000000),
+                                      blurRadius: 6,
+                                      offset: Offset(0, 3),
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
+                                  children: [
+                                    CircleAvatar(
+                                      radius: 28,
+                                      backgroundImage: avatarUrl != null
+                                          ? NetworkImage(avatarUrl)
+                                          : null,
+                                      backgroundColor: avatarUrl == null
+                                          ? Colors.white
+                                          : null,
+                                      child: avatarUrl == null
+                                          ? Text(
+                                              name.isNotEmpty ? name[0] : '?',
+                                            )
+                                          : null,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            name,
+                                            style: bodyTextStyle(size: 20),
+                                          ),
+                                          const SizedBox(height: 6),
+                                          Text(
+                                            sender.isNotEmpty
+                                                ? '$sender: $lastText'
+                                                : lastText,
+                                            style: bodyTextStyle(
+                                              size: 16,
+                                              color: Colors.black54,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      time,
+                                      style: bodyTextStyle(
+                                        size: 14,
+                                        color: Colors.black54,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             );
                           },
-                          child: Container(
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              color: colorKuning,
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: const [
-                                BoxShadow(
-                                  color: Color(0x0D000000),
-                                  blurRadius: 6,
-                                  offset: Offset(0, 3),
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              children: [
-                                CircleAvatar(
-                                  radius: 28,
-                                  backgroundImage: avatarUrl != null
-                                      ? NetworkImage(avatarUrl)
-                                      : null,
-                                  backgroundColor: avatarUrl == null
-                                      ? Colors.white
-                                      : null,
-                                  child: avatarUrl == null
-                                      ? Text(name.isNotEmpty ? name[0] : '?')
-                                      : null,
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        name,
-                                        style: bodyTextStyle(size: 20),
-                                      ),
-                                      const SizedBox(height: 6),
-                                      Text(
-                                        sender.isNotEmpty
-                                            ? '$sender: $lastText'
-                                            : lastText,
-                                        style: bodyTextStyle(
-                                          size: 16,
-                                          color: Colors.black54,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  time,
-                                  style: bodyTextStyle(
-                                    size: 14,
-                                    color: Colors.black54,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
                         );
                       },
                     );

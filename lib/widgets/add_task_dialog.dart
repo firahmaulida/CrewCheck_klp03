@@ -12,7 +12,9 @@ void showAddTaskDialog(
   required List<Map<String, dynamic>> members,
 }) {
   final descriptionController = TextEditingController();
-  String? selectedUid = members.isNotEmpty ? members.first['uid'] as String? : null;
+  String? selectedUid = members.isNotEmpty
+      ? members.first['uid'] as String?
+      : null;
   bool isLoading = false;
 
   showDialog(
@@ -25,12 +27,19 @@ void showAddTaskDialog(
             final description = descriptionController.text.trim();
             if (selectedUid == null || description.isEmpty) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Lengkapi anggota dan deskripsi tugas')),
+                const SnackBar(
+                  content: Text('Lengkapi anggota dan deskripsi tugas'),
+                ),
               );
               return;
             }
 
             setState(() => isLoading = true);
+            final snackBarMessenger = ScaffoldMessenger.of(context);
+            final dialogNavigator = Navigator.of(context);
+            final date = DateTime.now();
+            final dateText =
+                '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 
             final member = members.firstWhere(
               (m) => m['uid'] == selectedUid,
@@ -43,19 +52,21 @@ void showAddTaskDialog(
                   .doc(teamId)
                   .collection('tasks')
                   .add({
-                'title': description,
-                'assignedTo': selectedUid,
-                'assignedName': member['name'] ?? 'Anggota',
-                'completed': false,
-                'createdAt': FieldValue.serverTimestamp(),
-              });
+                    'title': description,
+                    'description': description,
+                    'assignedTo': selectedUid,
+                    'assignedName': member['name'] ?? 'Anggota',
+                    'completed': false,
+                    'createdAt': FieldValue.serverTimestamp(),
+                    'date': dateText,
+                  });
 
               if (!dialogContext.mounted) return;
-              Navigator.pop(dialogContext);
-              _showSuccessToast(context);
+              dialogNavigator.pop();
+              _showSuccessToast(dialogContext);
             } catch (e) {
               setState(() => isLoading = false);
-              ScaffoldMessenger.of(context).showSnackBar(
+              snackBarMessenger.showSnackBar(
                 SnackBar(content: Text('Gagal menambah tugas: $e')),
               );
             }
@@ -63,7 +74,9 @@ void showAddTaskDialog(
 
           return Dialog(
             backgroundColor: colorBg,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
             child: Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
@@ -105,7 +118,10 @@ void showAddTaskDialog(
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Text('Deskripsi Pembagian Tugas', style: bodyTextStyle(size: 15)),
+                  Text(
+                    'Deskripsi Pembagian Tugas',
+                    style: bodyTextStyle(size: 15),
+                  ),
                   const SizedBox(height: 6),
                   buildTextField(
                     hint: 'Deskripsi Pembagian Tugas',
@@ -117,7 +133,9 @@ void showAddTaskDialog(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       TextButton(
-                        onPressed: isLoading ? null : () => Navigator.pop(dialogContext),
+                        onPressed: isLoading
+                            ? null
+                            : () => Navigator.pop(dialogContext),
                         child: Text('Batal', style: bodyTextStyle(size: 15)),
                       ),
                       const SizedBox(width: 10),
@@ -144,7 +162,10 @@ void showAddTaskDialog(
                               )
                             : Text(
                                 'Tambah',
-                                style: bodyTextStyle(size: 15, color: Colors.white),
+                                style: bodyTextStyle(
+                                  size: 15,
+                                  color: Colors.white,
+                                ),
                               ),
                       ),
                     ],
@@ -163,9 +184,10 @@ void _showSuccessToast(BuildContext context) {
   showDialog(
     context: context,
     barrierColor: Colors.black26,
-    builder: (context) {
+    builder: (dialogContext) {
+      final dialogNavigator = Navigator.of(dialogContext);
       Future.delayed(const Duration(seconds: 2), () {
-        if (Navigator.canPop(context)) Navigator.pop(context);
+        if (dialogNavigator.canPop()) dialogNavigator.pop();
       });
       return Dialog(
         backgroundColor: Colors.white,
@@ -175,7 +197,11 @@ void _showSuccessToast(BuildContext context) {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.check_circle_outline, color: colorMerah, size: 48),
+              const Icon(
+                Icons.check_circle_outline,
+                color: colorMerah,
+                size: 48,
+              ),
               const SizedBox(height: 12),
               Text(
                 'Tugas baru berhasil ditambahkan',

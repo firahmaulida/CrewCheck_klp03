@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:crew_check/app_theme.dart';
@@ -31,9 +32,9 @@ class _CreateTeamPageState extends State<CreateTeamPage> {
       lastDate: DateTime(now.year + 3),
       builder: (context, child) {
         return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(primary: colorMerah),
-          ),
+          data: Theme.of(
+            context,
+          ).copyWith(colorScheme: const ColorScheme.light(primary: colorMerah)),
           child: child!,
         );
       },
@@ -65,13 +66,7 @@ class _CreateTeamPageState extends State<CreateTeamPage> {
     setState(() => _isLoading = true);
 
     try {
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .get();
-      final userData = userDoc.data();
-      final username = userData?['username'] ?? user.displayName ?? 'Ketua';
-
+      final username = user.displayName ?? 'Ketua';
       final teamCode = generateTeamCode();
 
       await FirebaseFirestore.instance.collection('teams').add({
@@ -95,15 +90,58 @@ class _CreateTeamPageState extends State<CreateTeamPage> {
       });
 
       if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Tim berhasil dibuat'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Kode tim berikut dapat dibagikan kepada anggota lain:',
+              ),
+              const SizedBox(height: 16),
+              SelectableText(
+                teamCode,
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 2,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: teamCode));
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Kode tim disalin')),
+                  );
+                }
+              },
+              child: const Text('SALIN'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+
+      if (!mounted) return;
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const TeamProjectsPage()),
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal membuat tim: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Gagal membuat tim: $e')));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -188,7 +226,9 @@ class _CreateTeamPageState extends State<CreateTeamPage> {
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       TextButton(
-                        onPressed: _isLoading ? null : () => Navigator.pop(context),
+                        onPressed: _isLoading
+                            ? null
+                            : () => Navigator.pop(context),
                         child: Text('Batal', style: bodyTextStyle(size: 16)),
                       ),
                       const SizedBox(width: 12),

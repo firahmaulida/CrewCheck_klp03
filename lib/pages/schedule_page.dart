@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:crew_check/app_theme.dart';
 import 'package:crew_check/widgets/common_widgets.dart';
 
@@ -72,11 +73,15 @@ class _SchedulePageState extends State<SchedulePage> {
     return '${date.day.toString().padLeft(2, '0')} ${dayNames[date.weekday % 7]}';
   }
 
-  Stream<QuerySnapshot<Map<String, dynamic>>> taskStream(DateTime date) {
+  Stream<QuerySnapshot<Map<String, dynamic>>> taskStream(
+    DateTime date,
+    String uid,
+  ) {
     final selectedString =
         '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
     return FirebaseFirestore.instance
-        .collection('tasks')
+        .collectionGroup('tasks')
+        .where('assignedTo', isEqualTo: uid)
         .where('date', isEqualTo: selectedString)
         .snapshots();
   }
@@ -121,13 +126,13 @@ class _SchedulePageState extends State<SchedulePage> {
                         onTap: _goToPreviousWeek,
                         child: Row(
                           children: [
-                            const Icon(
-                              Icons.chevron_left,
-                              color: Colors.black,
-                            ),
+                            const Icon(Icons.chevron_left, color: Colors.black),
                             Text(
                               'Sebelumnya',
-                              style: bodyTextStyle(size: 14, color: Colors.black54),
+                              style: bodyTextStyle(
+                                size: 14,
+                                color: Colors.black54,
+                              ),
                             ),
                           ],
                         ),
@@ -142,7 +147,10 @@ class _SchedulePageState extends State<SchedulePage> {
                           children: [
                             Text(
                               'Berikutnya',
-                              style: bodyTextStyle(size: 14, color: Colors.black54),
+                              style: bodyTextStyle(
+                                size: 14,
+                                color: Colors.black54,
+                              ),
                             ),
                             const Icon(
                               Icons.chevron_right,
@@ -198,7 +206,10 @@ class _SchedulePageState extends State<SchedulePage> {
                                 if (isSelected)
                                   Row(
                                     children: const [
-                                      Text('•  ', style: TextStyle(fontSize: 18)),
+                                      Text(
+                                        '•  ',
+                                        style: TextStyle(fontSize: 18),
+                                      ),
                                       Text('•', style: TextStyle(fontSize: 18)),
                                     ],
                                   ),
@@ -234,78 +245,105 @@ class _SchedulePageState extends State<SchedulePage> {
                       ),
                     ),
                     Expanded(
-                      child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                        stream: taskStream(selectedDate),
-                        builder: (context, snapshot) {
-                          if (snapshot.connectionState ==
-                              ConnectionState.waiting) {
-                            return const Center(
-                              child: CircularProgressIndicator(),
-                            );
-                          }
-                          if (snapshot.hasError) {
+                      child: Builder(
+                        builder: (context) {
+                          final user = FirebaseAuth.instance.currentUser;
+                          if (user == null) {
                             return Center(
                               child: Text(
-                                'Terjadi kesalahan saat memuat tugas',
+                                'Silakan masuk untuk melihat jadwal',
                                 style: bodyTextStyle(size: 18),
                               ),
                             );
                           }
-                          final docs = snapshot.data?.docs ?? [];
-                          if (docs.isEmpty) {
-                            return Center(
-                              child: Text(
-                                'Tidak ada tugas untuk tanggal ini',
-                                style: bodyTextStyle(size: 18),
-                              ),
-                            );
-                          }
-                          return ListView.separated(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            itemCount: docs.length,
-                            separatorBuilder: (context, index) =>
-                                const Divider(color: colorMerah, height: 1),
-                            itemBuilder: (context, index) {
-                              final data = docs[index].data();
-                              final title =
-                                  data['title'] as String? ??
-                                  'Tugas tanpa judul';
-                              final completed =
-                                  data['completed'] as bool? ?? false;
-                              return Container(
+
+                          return StreamBuilder<
+                            QuerySnapshot<Map<String, dynamic>>
+                          >(
+                            stream: taskStream(selectedDate, user.uid),
+                            builder: (context, snapshot) {
+                              if (snapshot.connectionState ==
+                                  ConnectionState.waiting) {
+                                return const Center(
+                                  child: CircularProgressIndicator(),
+                                );
+                              }
+                              if (snapshot.hasError) {
+                                return Center(
+                                  child: Text(
+                                    'Terjadi kesalahan saat memuat tugas',
+                                    style: bodyTextStyle(size: 18),
+                                  ),
+                                );
+                              }
+                              final docs = snapshot.data?.docs ?? [];
+                              if (docs.isEmpty) {
+                                return Center(
+                                  child: Text(
+                                    'Tidak ada tugas untuk tanggal ini',
+                                    style: bodyTextStyle(size: 18),
+                                  ),
+                                );
+                              }
+                              return ListView.separated(
                                 padding: const EdgeInsets.symmetric(
-                                  vertical: 15,
+                                  horizontal: 16,
                                 ),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      width: 46,
-                                      height: 46,
-                                      decoration: BoxDecoration(
-                                        border: Border(
-                                          right: BorderSide(
-                                            color: colorMerah,
-                                            width: 2,
+                                itemCount: docs.length,
+                                separatorBuilder: (context, index) =>
+                                    const Divider(color: colorMerah, height: 1),
+                                itemBuilder: (context, index) {
+                                  final data = docs[index].data();
+                                  final title =
+                                      data['title'] as String? ??
+                                      'Tugas tanpa judul';
+                                  final completed =
+                                      data['completed'] as bool? ?? false;
+                                  return Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 15,
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          width: 46,
+                                          height: 46,
+                                          decoration: BoxDecoration(
+                                            border: Border(
+                                              right: BorderSide(
+                                                color: colorMerah,
+                                                width: 2,
+                                              ),
+                                            ),
+                                          ),
+                                          child: Center(
+                                            child: Checkbox(
+                                              value: completed,
+                                              onChanged: (value) {
+                                                docs[index].reference.update({
+                                                  'completed': value ?? false,
+                                                });
+                                              },
+                                              activeColor: colorMerah,
+                                            ),
                                           ),
                                         ),
-                                      ),
-                                      child: Center(
-                                        child: Checkbox(
-                                          value: completed,
-                                          onChanged: (_) {},
-                                          activeColor: colorMerah,
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Text(
+                                            title,
+                                            style: bodyTextStyle(
+                                              size: 18,
+                                              color: completed
+                                                  ? Colors.black54
+                                                  : Colors.black87,
+                                            ),
+                                          ),
                                         ),
-                                      ),
+                                      ],
                                     ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Text(
-                                        title,
-                                        style: bodyTextStyle(size: 18),
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                                  );
+                                },
                               );
                             },
                           );

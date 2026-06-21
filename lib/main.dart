@@ -21,7 +21,7 @@ void main() async {
       apiKey: "AIzaSyBshv4sP-3jmwTWWyRWScnfDCf9eK1VO34",
       authDomain: "crewcheck-bc369.firebaseapp.com",
       projectId: "crewcheck-bc369",
-      storageBucket: "crewcheck-bc369.firebasestorage.app",
+      storageBucket: "crewcheck-bc369.appspot.com",
       messagingSenderId: "229354290878",
       appId: "1:229354290878:web:55e6bc160cc63ee58968ef",
       measurementId: "G-YQ5RMRQNY0",

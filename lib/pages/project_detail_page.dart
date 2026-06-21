@@ -54,7 +54,10 @@ class ProjectDetailPage extends StatelessWidget {
                       child: Center(
                         child: Text(
                           'CrewCheck',
-                          style: crewCheckTitleStyle(size: 40, color: Colors.white),
+                          style: crewCheckTitleStyle(
+                            size: 40,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                     ),
@@ -64,7 +67,10 @@ class ProjectDetailPage extends StatelessWidget {
                     child: Row(
                       children: [
                         IconButton(
-                          icon: const Icon(Icons.arrow_back, color: Colors.black),
+                          icon: const Icon(
+                            Icons.arrow_back,
+                            color: Colors.black,
+                          ),
                           onPressed: () => Navigator.pop(context),
                         ),
                         Expanded(
@@ -74,11 +80,14 @@ class ProjectDetailPage extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        Text(
-                          isKetua ? 'Ketua' : 'Anggota',
-                          style: bodyTextStyle(
-                            size: 13,
-                            color: colorMerah,
+                        TextButton(
+                          onPressed: () {},
+                          child: Text(
+                            'Anggota',
+                            style: bodyTextStyle(
+                              size: 13,
+                              color: Colors.black54,
+                            ),
                           ),
                         ),
                       ],
@@ -132,6 +141,7 @@ class ProjectDetailPage extends StatelessWidget {
           );
         },
       ),
+      bottomNavigationBar: buildBottomNavBar(context),
     );
   }
 }
@@ -163,29 +173,29 @@ class _MemberTaskGroup extends StatelessWidget {
         .snapshots();
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
-        color: colorKrem,
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: colorKuning),
+        color: colorKuning,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: colorMerah, width: 2.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+            decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: colorMerah, width: 2)),
+            ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                Text(memberName, style: bodyTextStyle(size: 20)),
                 Text(
-                  '$memberName ($memberRole)',
-                  style: bodyTextStyle(size: 16),
+                  jobTitle,
+                  style: bodyTextStyle(size: 13, color: Colors.black54),
                 ),
-                if (jobTitle.isNotEmpty)
-                  Text(
-                    jobTitle,
-                    style: bodyTextStyle(size: 12, color: Colors.black54),
-                  ),
               ],
             ),
           ),
@@ -201,7 +211,7 @@ class _MemberTaskGroup extends StatelessWidget {
               final docs = snapshot.data?.docs ?? [];
               if (docs.isEmpty) {
                 return Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
                   child: Text(
                     'Belum ada tugas',
                     style: bodyTextStyle(size: 13, color: Colors.black45),
@@ -209,29 +219,60 @@ class _MemberTaskGroup extends StatelessWidget {
                 );
               }
               return Column(
-                children: docs.map((doc) {
+                children: List.generate(docs.length, (i) {
+                  final doc = docs[i];
                   final data = doc.data();
                   final title = data['title'] ?? 'Tugas';
                   final completed = data['completed'] as bool? ?? false;
-                  // Hanya anggota yang ditugaskan yang boleh toggle checklist-nya sendiri.
                   final canToggle = isCurrentUser;
+                  final isLast = i == docs.length - 1;
 
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: CheckboxListTile(
-                      value: completed,
-                      onChanged: canToggle
-                          ? (value) {
-                              doc.reference.update({'completed': value});
-                            }
-                          : null,
-                      activeColor: colorMerah,
-                      controlAffinity: ListTileControlAffinity.leading,
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(title, style: bodyTextStyle(size: 15)),
-                    ),
+                  return Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: Row(
+                          children: [
+                            Checkbox(
+                              value: completed,
+                              onChanged: canToggle
+                                  ? (value) {
+                                      doc.reference.update({
+                                        'completed': value,
+                                      });
+                                    }
+                                  : null,
+                              activeColor: Colors.green,
+                              checkColor: Colors.white,
+                            ),
+                            Expanded(
+                              child: Padding(
+                                padding: const EdgeInsets.only(left: 8),
+                                child: Text(
+                                  title,
+                                  style: bodyTextStyle(
+                                    size: 16,
+                                    color: completed
+                                        ? Colors.black54
+                                        : Colors.black87,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (!isLast)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Divider(
+                            color: colorMerah.withAlpha((0.3 * 255).round()),
+                            thickness: 1.5,
+                          ),
+                        ),
+                    ],
                   );
-                }).toList(),
+                }),
               );
             },
           ),
