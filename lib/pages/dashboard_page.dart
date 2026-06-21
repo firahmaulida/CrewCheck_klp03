@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:crew_check/app_theme.dart';
 import 'package:crew_check/pages/project_detail_page.dart';
@@ -15,43 +17,119 @@ class DashboardPage extends StatefulWidget {
 class _DashboardPageState extends State<DashboardPage> {
   final _firestore = FirebaseFirestore.instance;
 
-  Stream<int> _getProjectCountTodayStream(String uid) {
-    final today = DateTime.now();
-    final todayString =
-        '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
-    return _firestore
-        .collectionGroup('tasks')
-        .where('assignedTo', isEqualTo: uid)
-        .where('date', isEqualTo: todayString)
-        .snapshots()
-        .map((snapshot) => snapshot.docs.length);
-  }
+  Stream<Map<String, int>> _getSummaryCountsStream(String uid) {
+    final teamsStream = _firestore
+        .collection('teams')
+        .where('memberUids', arrayContains: uid)
+        .snapshots();
 
-  Stream<int> _getProjectCountThisWeekStream(String uid) {
-    final today = DateTime.now();
-    final weekStart = today.subtract(Duration(days: today.weekday - 1));
-    final weekEnd = weekStart.add(const Duration(days: 6));
-    final weekStartStr =
-        '${weekStart.year}-${weekStart.month.toString().padLeft(2, '0')}-${weekStart.day.toString().padLeft(2, '0')}';
-    final weekEndStr =
-        '${weekEnd.year}-${weekEnd.month.toString().padLeft(2, '0')}-${weekEnd.day.toString().padLeft(2, '0')}';
+    return Stream.multi((controller) {
+      StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? teamsSub;
+      final taskSubscriptions =
+          <String, StreamSubscription<QuerySnapshot<Map<String, dynamic>>>>{};
+      final taskSnapshots = <String, QuerySnapshot<Map<String, dynamic>>>{};
 
-    return _firestore
-        .collectionGroup('tasks')
-        .where('assignedTo', isEqualTo: uid)
-        .where('date', isGreaterThanOrEqualTo: weekStartStr)
-        .where('date', isLessThanOrEqualTo: weekEndStr)
-        .snapshots()
-        .map((snapshot) => snapshot.docs.length);
-  }
+      void updateCounts() {
+        final today = DateTime.now();
+        final todayString =
+            '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+        final weekStart = today.subtract(Duration(days: today.weekday - 1));
+        final weekEnd = weekStart.add(const Duration(days: 6));
+        final weekStartStr =
+            '${weekStart.year}-${weekStart.month.toString().padLeft(2, '0')}-${weekStart.day.toString().padLeft(2, '0')}';
+        final weekEndStr =
+            '${weekEnd.year}-${weekEnd.month.toString().padLeft(2, '0')}-${weekEnd.day.toString().padLeft(2, '0')}';
 
-  Stream<int> _getCompletedProjectCountStream(String uid) {
-    return _firestore
-        .collectionGroup('tasks')
-        .where('assignedTo', isEqualTo: uid)
-        .where('completed', isEqualTo: true)
-        .snapshots()
-        .map((snapshot) => snapshot.docs.length);
+        int todayCount = 0;
+        int weekCount = 0;
+        int completedCount = 0;
+
+        for (final snapshot in taskSnapshots.values) {
+          for (final doc in snapshot.docs) {
+            final data = doc.data();
+            final completed = data['completed'] as bool? ?? false;
+            final rawDate = data['date'];
+            String dateString = '';
+
+            if (rawDate is String) {
+              dateString = rawDate;
+            } else if (rawDate is Timestamp) {
+              final d = rawDate.toDate();
+              dateString =
+                  '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+            } else if (rawDate is DateTime) {
+              final d = rawDate;
+              dateString =
+                  '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+            }
+
+            if (!completed && dateString == todayString) {
+              todayCount += 1;
+            }
+            if (!completed &&
+                dateString.compareTo(weekStartStr) >= 0 &&
+                dateString.compareTo(weekEndStr) <= 0) {
+              weekCount += 1;
+            }
+            if (completed) {
+              completedCount += 1;
+            }
+          }
+        }
+
+        controller.add({
+          'today': todayCount,
+          'week': weekCount,
+          'completed': completedCount,
+        });
+      }
+
+      void subscribeToTeam(String teamId) {
+        if (taskSubscriptions.containsKey(teamId)) {
+          return;
+        }
+
+        final subscription = _firestore
+            .collection('teams')
+            .doc(teamId)
+            .collection('tasks')
+            .snapshots()
+            .listen((snapshot) {
+              taskSnapshots[teamId] = snapshot;
+              updateCounts();
+            }, onError: controller.addError);
+
+        taskSubscriptions[teamId] = subscription;
+      }
+
+      void cancelUnusedTeams(List<String> teamIds) {
+        final removed = taskSubscriptions.keys
+            .where((teamId) => !teamIds.contains(teamId))
+            .toList();
+        for (final teamId in removed) {
+          taskSubscriptions[teamId]?.cancel();
+          taskSubscriptions.remove(teamId);
+          taskSnapshots.remove(teamId);
+        }
+      }
+
+      teamsSub = teamsStream.listen((teamsSnapshot) {
+        final teamIds = teamsSnapshot.docs.map((doc) => doc.id).toList();
+
+        for (final teamId in teamIds) {
+          subscribeToTeam(teamId);
+        }
+        cancelUnusedTeams(teamIds);
+        updateCounts();
+      }, onError: controller.addError);
+
+      controller.onCancel = () async {
+        await teamsSub?.cancel();
+        for (final sub in taskSubscriptions.values) {
+          await sub.cancel();
+        }
+      };
+    });
   }
 
   Stream<QuerySnapshot<Map<String, dynamic>>> _getTeamProjectsStream(
@@ -211,40 +289,46 @@ class _DashboardPageState extends State<DashboardPage> {
                       children: [
                         Text('Ringkasan', style: bodyTextStyle(size: 28)),
                         const SizedBox(height: 10),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            StreamBuilder<int>(
-                              stream: _getProjectCountTodayStream(user.uid),
-                              builder: (context, snapshot) {
-                                final count = snapshot.data ?? 0;
-                                return _buildSummaryCard(
-                                  count.toString(),
-                                  'Proyek Hari ini',
-                                );
-                              },
-                            ),
-                            StreamBuilder<int>(
-                              stream: _getProjectCountThisWeekStream(user.uid),
-                              builder: (context, snapshot) {
-                                final count = snapshot.data ?? 0;
-                                return _buildSummaryCard(
-                                  count.toString(),
-                                  'Proyek Minggu ini',
-                                );
-                              },
-                            ),
-                            StreamBuilder<int>(
-                              stream: _getCompletedProjectCountStream(user.uid),
-                              builder: (context, snapshot) {
-                                final count = snapshot.data ?? 0;
-                                return _buildSummaryCard(
-                                  count.toString(),
-                                  'Proyek Selesai',
-                                );
-                              },
-                            ),
-                          ],
+                        StreamBuilder<Map<String, int>>(
+                          stream: _getSummaryCountsStream(user.uid),
+                          builder: (context, snapshot) {
+                            if (snapshot.hasError) {
+                              debugPrint(
+                                '[summary] stream error: ${snapshot.error}',
+                              );
+                              // show zeroes but also an error indicator
+                              return Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  _buildSummaryCard('0', 'Tugas Hari ini'),
+                                  _buildSummaryCard('0', 'Tugas Minggu ini'),
+                                  _buildSummaryCard('0', 'Tugas Selesai'),
+                                ],
+                              );
+                            }
+
+                            final counts =
+                                snapshot.data ??
+                                {'today': 0, 'week': 0, 'completed': 0};
+                            return Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                _buildSummaryCard(
+                                  counts['today']!.toString(),
+                                  'Tugas Hari ini',
+                                ),
+                                _buildSummaryCard(
+                                  counts['week']!.toString(),
+                                  'Tugas Minggu ini',
+                                ),
+                                _buildSummaryCard(
+                                  counts['completed']!.toString(),
+                                  'Tugas Selesai',
+                                ),
+                              ],
+                            );
+                          },
                         ),
                         const SizedBox(height: 30),
                         Text('Projek Tim Anda', style: bodyTextStyle(size: 28)),

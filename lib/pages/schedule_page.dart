@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -73,17 +75,75 @@ class _SchedulePageState extends State<SchedulePage> {
     return '${date.day.toString().padLeft(2, '0')} ${dayNames[date.weekday % 7]}';
   }
 
-  Stream<QuerySnapshot<Map<String, dynamic>>> taskStream(
-    DateTime date,
-    String uid,
-  ) {
+  Stream<List<QueryDocumentSnapshot<Map<String, dynamic>>>>
+  _getScheduleTasksStream(DateTime date, String uid) {
     final selectedString =
         '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-    return FirebaseFirestore.instance
-        .collectionGroup('tasks')
-        .where('assignedTo', isEqualTo: uid)
-        .where('date', isEqualTo: selectedString)
+    final teamsStream = FirebaseFirestore.instance
+        .collection('teams')
+        .where('memberUids', arrayContains: uid)
         .snapshots();
+
+    return Stream.multi((controller) {
+      StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? teamsSub;
+      final taskSubscriptions =
+          <String, StreamSubscription<QuerySnapshot<Map<String, dynamic>>>>{};
+      final taskSnapshots = <String, QuerySnapshot<Map<String, dynamic>>>{};
+
+      void updateTasks() {
+        final docs = taskSnapshots.values
+            .expand((snapshot) => snapshot.docs)
+            .where((doc) => doc.data()['date'] == selectedString)
+            .toList();
+        controller.add(docs);
+      }
+
+      void subscribeToTeam(String teamId) {
+        if (taskSubscriptions.containsKey(teamId)) {
+          return;
+        }
+
+        final subscription = FirebaseFirestore.instance
+            .collection('teams')
+            .doc(teamId)
+            .collection('tasks')
+            .snapshots()
+            .listen((snapshot) {
+              taskSnapshots[teamId] = snapshot;
+              updateTasks();
+            }, onError: controller.addError);
+
+        taskSubscriptions[teamId] = subscription;
+      }
+
+      void cancelUnusedTeams(List<String> teamIds) {
+        final removed = taskSubscriptions.keys
+            .where((teamId) => !teamIds.contains(teamId))
+            .toList();
+        for (final teamId in removed) {
+          taskSubscriptions[teamId]?.cancel();
+          taskSubscriptions.remove(teamId);
+          taskSnapshots.remove(teamId);
+        }
+      }
+
+      teamsSub = teamsStream.listen((teamsSnapshot) {
+        final teamIds = teamsSnapshot.docs.map((doc) => doc.id).toList();
+
+        for (final teamId in teamIds) {
+          subscribeToTeam(teamId);
+        }
+        cancelUnusedTeams(teamIds);
+        updateTasks();
+      }, onError: controller.addError);
+
+      controller.onCancel = () async {
+        await teamsSub?.cancel();
+        for (final sub in taskSubscriptions.values) {
+          await sub.cancel();
+        }
+      };
+    });
   }
 
   @override
@@ -240,7 +300,7 @@ class _SchedulePageState extends State<SchedulePage> {
                     Padding(
                       padding: const EdgeInsets.all(16.0),
                       child: Text(
-                        'Kumpul Hari Ini',
+                        'Jadwal ${formatDate(selectedDate)}',
                         style: bodyTextStyle(size: 28, color: Colors.black),
                       ),
                     ),
@@ -258,9 +318,12 @@ class _SchedulePageState extends State<SchedulePage> {
                           }
 
                           return StreamBuilder<
-                            QuerySnapshot<Map<String, dynamic>>
+                            List<QueryDocumentSnapshot<Map<String, dynamic>>>
                           >(
-                            stream: taskStream(selectedDate, user.uid),
+                            stream: _getScheduleTasksStream(
+                              selectedDate,
+                              user.uid,
+                            ),
                             builder: (context, snapshot) {
                               if (snapshot.connectionState ==
                                   ConnectionState.waiting) {
@@ -276,7 +339,7 @@ class _SchedulePageState extends State<SchedulePage> {
                                   ),
                                 );
                               }
-                              final docs = snapshot.data?.docs ?? [];
+                              final docs = snapshot.data ?? [];
                               if (docs.isEmpty) {
                                 return Center(
                                   child: Text(
