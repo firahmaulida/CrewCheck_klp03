@@ -88,7 +88,7 @@ class ProjectDetailPage extends StatelessWidget {
                         TextButton(
                           onPressed: () {},
                           child: Text(
-                            'Anggota',
+                            currentRole.isNotEmpty ? currentRole : 'Anggota',
                             style: bodyTextStyle(
                               size: 13,
                               color: Colors.black54,
@@ -108,17 +108,6 @@ class ProjectDetailPage extends StatelessWidget {
                       ),
                     ),
                   ),
-                  if (currentRole.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(left: 56, right: 16, top: 8),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          'Peran Anda: $currentRole',
-                          style: bodyTextStyle(size: 13, color: Colors.black54),
-                        ),
-                      ),
-                    ),
                   const SizedBox(height: 10),
                   Expanded(
                     child: ListView.builder(
@@ -209,11 +198,24 @@ class _MemberTaskGroup extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(memberName, style: bodyTextStyle(size: 20)),
-                Text(
-                  jobTitle,
-                  style: bodyTextStyle(size: 13, color: Colors.black54),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(memberName, style: bodyTextStyle(size: 20)),
+                      const SizedBox(height: 4),
+                      Text(
+                        memberRole,
+                        style: bodyTextStyle(size: 13, color: Colors.black54),
+                      ),
+                    ],
+                  ),
                 ),
+                if (jobTitle.isNotEmpty)
+                  Text(
+                    jobTitle,
+                    style: bodyTextStyle(size: 13, color: Colors.black54),
+                  ),
               ],
             ),
           ),
