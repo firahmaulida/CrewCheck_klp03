@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "229354290878",
+    "project_id": "crewcheck-bc369",
+    "storage_bucket": "crewcheck-bc369.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:229354290878:android:7704281206d1f84f8968ef",
+        "android_client_info": {
+          "package_name": "com.example.crew_check"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBgw-SqGZ8Iy2wARoxkcvvBk1MLLjQHE_c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

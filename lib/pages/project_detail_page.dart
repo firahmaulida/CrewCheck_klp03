@@ -133,6 +133,8 @@ class ProjectDetailPage extends StatelessWidget {
                       context,
                       teamId: teamId,
                       members: members,
+                      defaultDate: (teamData['deadline'] as Timestamp?)
+                          ?.toDate(),
                     ),
                     child: const Icon(Icons.add, color: Colors.white),
                   ),

@@ -10,12 +10,38 @@ void showAddTaskDialog(
   BuildContext context, {
   required String teamId,
   required List<Map<String, dynamic>> members,
+  DateTime? defaultDate,
 }) {
   final descriptionController = TextEditingController();
   String? selectedUid = members.isNotEmpty
       ? members.first['uid'] as String?
       : null;
+  DateTime selectedDate = defaultDate ?? DateTime.now();
   bool isLoading = false;
+
+  String selectedDateText() {
+    return '${selectedDate.day.toString().padLeft(2, '0')}/${selectedDate.month.toString().padLeft(2, '0')}/${selectedDate.year}';
+  }
+
+  Future<void> pickTaskDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: selectedDate,
+      firstDate: DateTime.now().subtract(const Duration(days: 365)),
+      lastDate: DateTime(DateTime.now().year + 3),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(
+            context,
+          ).copyWith(colorScheme: const ColorScheme.light(primary: colorMerah)),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null) {
+      selectedDate = picked;
+    }
+  }
 
   showDialog(
     context: context,
@@ -37,10 +63,6 @@ void showAddTaskDialog(
             setState(() => isLoading = true);
             final snackBarMessenger = ScaffoldMessenger.of(context);
             final dialogNavigator = Navigator.of(context);
-            final date = DateTime.now();
-            final dateText =
-                '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-
             final member = members.firstWhere(
               (m) => m['uid'] == selectedUid,
               orElse: () => {'name': 'Anggota'},
@@ -58,7 +80,7 @@ void showAddTaskDialog(
                     'assignedName': member['name'] ?? 'Anggota',
                     'completed': false,
                     'createdAt': FieldValue.serverTimestamp(),
-                    'date': dateText,
+                    'date': Timestamp.fromDate(selectedDate),
                   });
 
               if (!dialogContext.mounted) return;
@@ -127,6 +149,27 @@ void showAddTaskDialog(
                     hint: 'Deskripsi Pembagian Tugas',
                     icon: Icons.assignment_outlined,
                     controller: descriptionController,
+                  ),
+                  const SizedBox(height: 16),
+                  Text('Tanggal Tugas', style: bodyTextStyle(size: 15)),
+                  const SizedBox(height: 6),
+                  GestureDetector(
+                    onTap: () async {
+                      final previousDate = selectedDate;
+                      await pickTaskDate();
+                      if (selectedDate != previousDate) {
+                        setState(() {});
+                      }
+                    },
+                    child: AbsorbPointer(
+                      child: buildTextField(
+                        hint: 'Pilih tanggal tugas',
+                        icon: Icons.calendar_today,
+                        controller: TextEditingController(
+                          text: selectedDateText(),
+                        ),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 20),
                   Row(

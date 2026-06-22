@@ -29,6 +29,28 @@ class _DashboardPageState extends State<DashboardPage> {
           <String, StreamSubscription<QuerySnapshot<Map<String, dynamic>>>>{};
       final taskSnapshots = <String, QuerySnapshot<Map<String, dynamic>>>{};
 
+      DateTime? parseTaskDate(dynamic rawDate) {
+        if (rawDate is String) {
+          try {
+            final parts = rawDate.split('-');
+            if (parts.length == 3) {
+              final year = int.parse(parts[0]);
+              final month = int.parse(parts[1]);
+              final day = int.parse(parts[2]);
+              return DateTime(year, month, day);
+            }
+          } catch (_) {
+            return null;
+          }
+        } else if (rawDate is Timestamp) {
+          final d = rawDate.toDate();
+          return DateTime(d.year, d.month, d.day);
+        } else if (rawDate is DateTime) {
+          return DateTime(rawDate.year, rawDate.month, rawDate.day);
+        }
+        return null;
+      }
+
       void updateCounts() {
         final today = DateTime.now();
         final todayString =
@@ -45,35 +67,32 @@ class _DashboardPageState extends State<DashboardPage> {
         int completedCount = 0;
 
         for (final snapshot in taskSnapshots.values) {
+          final total = snapshot.docs.length;
+          var completedTasks = 0;
+
           for (final doc in snapshot.docs) {
             final data = doc.data();
             final completed = data['completed'] as bool? ?? false;
-            final rawDate = data['date'];
-            String dateString = '';
+            final taskDate = parseTaskDate(data['date']);
 
-            if (rawDate is String) {
-              dateString = rawDate;
-            } else if (rawDate is Timestamp) {
-              final d = rawDate.toDate();
-              dateString =
-                  '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
-            } else if (rawDate is DateTime) {
-              final d = rawDate;
-              dateString =
-                  '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
-            }
-
-            if (!completed && dateString == todayString) {
-              todayCount += 1;
-            }
-            if (!completed &&
-                dateString.compareTo(weekStartStr) >= 0 &&
-                dateString.compareTo(weekEndStr) <= 0) {
-              weekCount += 1;
+            if (!completed && taskDate != null) {
+              final taskDateString =
+                  '${taskDate.year}-${taskDate.month.toString().padLeft(2, '0')}-${taskDate.day.toString().padLeft(2, '0')}';
+              if (taskDateString == todayString) {
+                todayCount += 1;
+              }
+              if (taskDateString.compareTo(weekStartStr) >= 0 &&
+                  taskDateString.compareTo(weekEndStr) <= 0) {
+                weekCount += 1;
+              }
             }
             if (completed) {
-              completedCount += 1;
+              completedTasks += 1;
             }
+          }
+
+          if (total > 0 && completedTasks == total) {
+            completedCount += 1;
           }
         }
 

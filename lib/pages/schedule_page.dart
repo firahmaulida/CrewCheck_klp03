@@ -77,12 +77,31 @@ class _SchedulePageState extends State<SchedulePage> {
 
   Stream<List<QueryDocumentSnapshot<Map<String, dynamic>>>>
   _getScheduleTasksStream(DateTime date, String uid) {
-    final selectedString =
-        '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    final selectedDate = DateTime(date.year, date.month, date.day);
     final teamsStream = FirebaseFirestore.instance
         .collection('teams')
         .where('memberUids', arrayContains: uid)
         .snapshots();
+
+    DateTime? parseTaskDate(dynamic rawDate) {
+      if (rawDate is String) {
+        final parts = rawDate.split('-');
+        if (parts.length == 3) {
+          final year = int.tryParse(parts[0]);
+          final month = int.tryParse(parts[1]);
+          final day = int.tryParse(parts[2]);
+          if (year != null && month != null && day != null) {
+            return DateTime(year, month, day);
+          }
+        }
+      } else if (rawDate is Timestamp) {
+        final d = rawDate.toDate();
+        return DateTime(d.year, d.month, d.day);
+      } else if (rawDate is DateTime) {
+        return DateTime(rawDate.year, rawDate.month, rawDate.day);
+      }
+      return null;
+    }
 
     return Stream.multi((controller) {
       StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? teamsSub;
@@ -93,7 +112,10 @@ class _SchedulePageState extends State<SchedulePage> {
       void updateTasks() {
         final docs = taskSnapshots.values
             .expand((snapshot) => snapshot.docs)
-            .where((doc) => doc.data()['date'] == selectedString)
+            .where((doc) {
+              final taskDate = parseTaskDate(doc.data()['date']);
+              return taskDate != null && taskDate == selectedDate;
+            })
             .toList();
         controller.add(docs);
       }
