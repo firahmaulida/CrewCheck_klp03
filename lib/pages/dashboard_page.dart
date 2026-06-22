@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:crew_check/app_theme.dart';
 import 'package:crew_check/pages/project_detail_page.dart';
 import 'package:crew_check/widgets/common_widgets.dart';
+import 'package:crew_check/widgets/add_project_dialog.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -409,11 +410,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 ),
               ],
             ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {},
-        backgroundColor: colorMerah,
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
+      floatingActionButton: buildAddFab(context),
       bottomNavigationBar: buildBottomNavBar(context),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );

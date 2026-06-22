@@ -35,9 +35,14 @@ class ProjectDetailPage extends StatelessWidget {
           final members = List<Map<String, dynamic>>.from(
             teamData['members'] ?? [],
           );
-          final isKetua = members.any(
-            (m) => m['uid'] == user?.uid && m['role'] == 'Ketua',
-          );
+          String currentRole = '';
+          for (final member in members) {
+            if (member['uid'] == user?.uid) {
+              currentRole = member['role'] ?? '';
+              break;
+            }
+          }
+          final isKetua = currentRole == 'Ketua';
           final projectName = teamData['projectName'] ?? 'Projek';
           final description = teamData['description'] ?? '';
 
@@ -103,6 +108,17 @@ class ProjectDetailPage extends StatelessWidget {
                       ),
                     ),
                   ),
+                  if (currentRole.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 56, right: 16, top: 8),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Peran Anda: $currentRole',
+                          style: bodyTextStyle(size: 13, color: Colors.black54),
+                        ),
+                      ),
+                    ),
                   const SizedBox(height: 10),
                   Expanded(
                     child: ListView.builder(

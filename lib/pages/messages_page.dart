@@ -244,11 +244,7 @@ class MessagesPage extends StatelessWidget {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => showAddProjectDialog(context),
-        backgroundColor: colorMerah,
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
+      floatingActionButton: buildAddFab(context),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );
   }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:crew_check/app_theme.dart';
+import 'package:crew_check/widgets/add_project_dialog.dart';
 
 Widget buildTextField({
   required String hint,
@@ -72,6 +73,12 @@ Widget buildSocialButton(String label, Color bg, Color textCol, IconData icon) {
 }
 
 BottomAppBar buildBottomNavBar(BuildContext context) {
+  final String currentRoute =
+      ModalRoute.of(context)?.settings.name ?? '/dashboard';
+
+  Color iconColor(String route) =>
+      currentRoute == route ? colorMerah : Colors.grey;
+
   return BottomAppBar(
     color: Colors.white,
     shape: const CircularNotchedRectangle(),
@@ -80,23 +87,31 @@ BottomAppBar buildBottomNavBar(BuildContext context) {
       mainAxisAlignment: MainAxisAlignment.spaceAround,
       children: [
         IconButton(
-          icon: const Icon(Icons.home, color: colorMerah),
+          icon: Icon(Icons.home, color: iconColor('/dashboard')),
           onPressed: () => Navigator.pushNamed(context, '/dashboard'),
         ),
         IconButton(
-          icon: const Icon(Icons.calendar_month),
+          icon: Icon(Icons.calendar_month, color: iconColor('/schedule')),
           onPressed: () => Navigator.pushNamed(context, '/schedule'),
         ),
         const SizedBox(width: 40),
         IconButton(
-          icon: const Icon(Icons.chat),
+          icon: Icon(Icons.chat, color: iconColor('/chat')),
           onPressed: () => Navigator.pushNamed(context, '/chat'),
         ),
         IconButton(
-          icon: const Icon(Icons.person),
+          icon: Icon(Icons.person, color: iconColor('/profile')),
           onPressed: () => Navigator.pushNamed(context, '/profile'),
         ),
       ],
     ),
+  );
+}
+
+FloatingActionButton buildAddFab(BuildContext context) {
+  return FloatingActionButton(
+    onPressed: () => showAddProjectDialog(context),
+    backgroundColor: colorMerah,
+    child: const Icon(Icons.add, color: Colors.white),
   );
 }

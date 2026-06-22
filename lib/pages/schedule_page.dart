@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:crew_check/app_theme.dart';
 import 'package:crew_check/widgets/common_widgets.dart';
+import 'package:crew_check/widgets/add_project_dialog.dart';
 
 class SchedulePage extends StatefulWidget {
   const SchedulePage({super.key});
@@ -442,11 +443,7 @@ class _SchedulePageState extends State<SchedulePage> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {},
-        backgroundColor: colorMerah,
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
+      floatingActionButton: buildAddFab(context),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );
   }

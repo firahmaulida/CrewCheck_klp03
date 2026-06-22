@@ -56,23 +56,39 @@ class _ChatPageState extends State<ChatPage> {
 
     return Scaffold(
       backgroundColor: colorBg,
-      bottomNavigationBar: buildBottomNavBar(context),
+      // Tidak ada bottomNavigationBar dan FAB
       body: Column(
         children: [
           Container(
             width: double.infinity,
             color: colorMerah,
             padding: const EdgeInsets.only(top: 60, bottom: 20),
-            child: Column(
+            child: Stack(
+              alignment: Alignment.center,
               children: [
-                Text(
-                  'CrewCheck',
-                  style: crewCheckTitleStyle(size: 32, color: Colors.white),
+                // Tombol kembali di kiri
+                Positioned(
+                  left: 8,
+                  child: IconButton(
+                    icon: const Icon(Icons.arrow_back_ios_new,
+                        color: Colors.white),
+                    onPressed: () =>
+                        Navigator.pushNamed(context, '/chat'),
+                  ),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  widget.groupName,
-                  style: bodyTextStyle(size: 18, color: Colors.white),
+                // Judul di tengah
+                Column(
+                  children: [
+                    Text(
+                      'CrewCheck',
+                      style: crewCheckTitleStyle(size: 32, color: Colors.white),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      widget.groupName,
+                      style: bodyTextStyle(size: 18, color: Colors.white),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -128,11 +144,13 @@ class _ChatPageState extends State<ChatPage> {
                           borderRadius: BorderRadius.only(
                             topLeft: const Radius.circular(20),
                             topRight: const Radius.circular(20),
-                            bottomLeft: Radius.circular(isOwnMessage ? 20 : 0),
-                            bottomRight: Radius.circular(isOwnMessage ? 0 : 20),
+                            bottomLeft:
+                                Radius.circular(isOwnMessage ? 20 : 0),
+                            bottomRight:
+                                Radius.circular(isOwnMessage ? 0 : 20),
                           ),
-                          boxShadow: [
-                            const BoxShadow(
+                          boxShadow: const [
+                            BoxShadow(
                               color: Color(0x0D000000),
                               blurRadius: 8,
                               offset: Offset(0, 3),
@@ -171,7 +189,8 @@ class _ChatPageState extends State<ChatPage> {
                     style: bodyTextStyle(size: 16),
                     decoration: InputDecoration(
                       hintText: 'Ketik pesan...',
-                      hintStyle: bodyTextStyle(size: 16, color: Colors.black38),
+                      hintStyle:
+                          bodyTextStyle(size: 16, color: Colors.black38),
                       filled: true,
                       fillColor: colorKrem,
                       contentPadding: const EdgeInsets.symmetric(
@@ -190,7 +209,7 @@ class _ChatPageState extends State<ChatPage> {
                   onTap: _sendMessage,
                   child: Container(
                     padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       color: colorMerah,
                       shape: BoxShape.circle,
                     ),

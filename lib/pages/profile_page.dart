@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:crew_check/app_theme.dart';
 import 'package:crew_check/widgets/common_widgets.dart';
+import 'package:crew_check/widgets/add_project_dialog.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -13,7 +14,6 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  bool _notificationsEnabled = true;
   final _auth = FirebaseAuth.instance;
   final _firestore = FirebaseFirestore.instance;
 
@@ -457,17 +457,6 @@ class _ProfilePageState extends State<ProfilePage> {
                     ),
                     const SizedBox(height: 12),
                     _buildMenuCard(
-                      'Pengaturan Notifikasi',
-                      Icons.notifications,
-                      trailing: Switch(
-                        value: _notificationsEnabled,
-                        activeThumbColor: colorMerah,
-                        onChanged: (value) =>
-                            setState(() => _notificationsEnabled = value),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    _buildMenuCard(
                       'Hubungi Kami',
                       Icons.phone,
                       trailing: const Icon(Icons.arrow_forward_ios, size: 18),
@@ -497,11 +486,7 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {},
-        backgroundColor: colorMerah,
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
+      floatingActionButton: buildAddFab(context),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );
   }
