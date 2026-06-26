@@ -57,13 +57,7 @@ Aplikasi ini dikembangkan sebagai solusi atas tantangan kolaborasi tim yang seri
    ```
 
 ## Screenshot Tampilan Aplikasi
-
-<p align="center">
-  <img src="screenshots/login.png" width="200" alt="Halaman Login">
-  <img src="screenshots/register.png" width="200" alt="Halaman Register">
-  <img src="screenshots/dashboard.png" width="200" alt="Halaman Dashboard">
-  <img src="screenshots/jadwal.png" width="200" alt="Halaman Jadwal">
-</p>
+<img width="831" height="842" alt="image" src="https://github.com/user-attachments/assets/b2f6668a-739b-4379-b2f3-2776c16baac4" />
 
 ---
 
